@@ -1,0 +1,1117 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gerenciador Kanban Avançado com Gráficos e Temas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js para os gráficos de pizza e barra -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome para ícones -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <!-- Google Fonts Inter -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      :root {
+        --bg-main: #0f172a;
+        --bg-card: #1e293b;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --accent: #3b82f6;
+        --accent-hover: #2563eb;
+        --border: #334155;
+        --column-bg: #111827;
+      }
+
+      [data-theme="dark"] {
+        --bg-main: #0f172a;
+        --bg-card: #1e293b;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --accent: #3b82f6;
+        --accent-hover: #2563eb;
+        --border: #334155;
+        --column-bg: #0b0f19;
+      }
+
+      [data-theme="light"] {
+        --bg-main: #f1f5f9;
+        --bg-card: #ffffff;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --accent: #4f46e5;
+        --accent-hover: #4338ca;
+        --border: #e2e8f0;
+        --column-bg: #e2e8f080;
+      }
+
+      [data-theme="cyberpunk"] {
+        --bg-main: #05050a;
+        --bg-card: #12121f;
+        --text-main: #00ffcc;
+        --text-muted: #a78bfa;
+        --accent: #f43f5e;
+        --accent-hover: #e11d48;
+        --border: #312e81;
+        --column-bg: #090914;
+      }
+
+      [data-theme="emerald"] {
+        --bg-main: #022c22;
+        --bg-card: #064e3b;
+        --text-main: #ecfdf5;
+        --text-muted: #6ee7b7;
+        --accent: #10b981;
+        --accent-hover: #059669;
+        --border: #047857;
+        --column-bg: #022019;
+      }
+
+      [data-theme="sunset"] {
+        --bg-main: #fff1f2;
+        --bg-card: #ffffff;
+        --text-main: #4c0519;
+        --text-muted: #9f1239;
+        --accent: #f43f5e;
+        --accent-hover: #e11d48;
+        --border: #fecdd3;
+        --column-bg: #ffe4e6;
+      }
+
+      body {
+        background-color: var(--bg-main);
+        color: var(--text-main);
+        font-family: "Inter", sans-serif;
+        transition:
+          background-color 0.3s ease,
+          color 0.3s ease;
+      }
+
+      .kanban-card {
+        background-color: var(--bg-card);
+        border: 1px solid var(--border);
+        color: var(--text-main);
+      }
+
+      .kanban-column {
+        background-color: var(--column-bg);
+        border: 1px solid var(--border);
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+      }
+
+      .dragging {
+        opacity: 0.5;
+        transform: scale(0.98);
+      }
+    </style>
+  </head>
+  <body
+    class="min-h-screen flex flex-col antialiased selection:bg-blue-500 selection:text-white"
+  >
+    <header
+      class="border-b border-[var(--border)] bg-[var(--bg-card)] shadow-md sticky top-0 z-40"
+    >
+      <div
+        class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="bg-[var(--accent)] text-white p-2.5 rounded-xl shadow-lg flex items-center justify-center"
+          >
+            <i class="fa-solid fa-kanban text-xl"></i>
+          </div>
+          <div>
+            <h1 class="text-xl font-bold tracking-tight">KanbanMaster Pro</h1>
+            <p class="text-xs text-[var(--text-muted)]">
+              Gerenciador de Tarefas Inteligente e Produtividade
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Seletor de Temas -->
+          <div
+            class="flex items-center gap-1 bg-[var(--bg-main)] p-1 rounded-xl border border-[var(--border)]"
+          >
+            <span class="text-xs px-2 text-[var(--text-muted)] hidden md:inline"
+              ><i class="fa-solid fa-palette mr-1"></i> Tema:</span
+            >
+            <button
+              onclick="setTheme('dark')"
+              class="px-2.5 py-1 text-xs font-medium rounded-lg transition hover:bg-[var(--accent)] hover:text-white"
+              title="Dark Navy"
+            >
+              Dark
+            </button>
+            <button
+              onclick="setTheme('light')"
+              class="px-2.5 py-1 text-xs font-medium rounded-lg transition hover:bg-[var(--accent)] hover:text-white"
+              title="Light Modern"
+            >
+              Light
+            </button>
+            <button
+              onclick="setTheme('cyberpunk')"
+              class="px-2.5 py-1 text-xs font-medium rounded-lg transition hover:bg-[var(--accent)] hover:text-white"
+              title="Cyberpunk"
+            >
+              Cyber
+            </button>
+            <button
+              onclick="setTheme('emerald')"
+              class="px-2.5 py-1 text-xs font-medium rounded-lg transition hover:bg-[var(--accent)] hover:text-white"
+              title="Emerald Forest"
+            >
+              Emerald
+            </button>
+            <button
+              onclick="setTheme('sunset')"
+              class="px-2.5 py-1 text-xs font-medium rounded-lg transition hover:bg-[var(--accent)] hover:text-white"
+              title="Sunset Orange"
+            >
+              Sunset
+            </button>
+          </div>
+
+          <!-- Botão Nova Tarefa -->
+          <button
+            onclick="openModal()"
+            class="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-md transition flex items-center gap-2"
+          >
+            <i class="fa-solid fa-plus"></i> Nova Tarefa
+          </button>
+
+          <!-- Botão Alternar Visão (Kanban vs Gráficos) -->
+          <button
+            onclick="toggleView()"
+            id="viewToggleBtn"
+            class="bg-[var(--bg-main)] border border-[var(--border)] text-[var(--text-main)] px-3 py-2 rounded-xl text-sm font-medium hover:bg-[var(--border)] transition flex items-center gap-2"
+          >
+            <i class="fa-solid fa-chart-pie"></i>
+            <span id="viewToggleText">Ver Estatísticas</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6 flex flex-col gap-6">
+      <!-- Seção do Kanban Board -->
+      <div
+        id="kanbanView"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start"
+      >
+        <!-- Coluna: A Fazer -->
+        <div
+          class="kanban-column rounded-2xl p-4 flex flex-col min-h-[550px]"
+          ondragover="allowDrop(event)"
+          ondragleave="removeDropStyle(event)"
+          ondrop="dropTask(event, 'todo')"
+        >
+          <div
+            class="flex justify-between items-center mb-4 pb-2 border-b border-[var(--border)]"
+          >
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+              <h2 class="font-bold text-sm uppercase tracking-wider">
+                A Fazer
+              </h2>
+            </div>
+            <span
+              id="count-todo"
+              class="bg-[var(--bg-card)] text-[var(--text-muted)] text-xs px-2 py-0.5 rounded-full font-semibold border border-[var(--border)]"
+              >0</span
+            >
+          </div>
+          <div
+            id="col-todo"
+            class="flex-1 flex flex-col gap-3 overflow-y-auto max-h-[65vh] pr-1"
+          >
+            <!-- Tarefas injetadas via JS -->
+          </div>
+          <button
+            onclick="openModalWithStatus('todo')"
+            class="mt-4 border border-dashed border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:border-[var(--accent)] py-2 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1"
+          >
+            <i class="fa-solid fa-plus"></i> Adicionar cartão
+          </button>
+        </div>
+
+        <!-- Coluna: Em Andamento -->
+        <div
+          class="kanban-column rounded-2xl p-4 flex flex-col min-h-[550px]"
+          ondragover="allowDrop(event)"
+          ondragleave="removeDropStyle(event)"
+          ondrop="dropTask(event, 'inprogress')"
+        >
+          <div
+            class="flex justify-between items-center mb-4 pb-2 border-b border-[var(--border)]"
+          >
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+              <h2 class="font-bold text-sm uppercase tracking-wider">
+                Em Andamento
+              </h2>
+            </div>
+            <span
+              id="count-inprogress"
+              class="bg-[var(--bg-card)] text-[var(--text-muted)] text-xs px-2 py-0.5 rounded-full font-semibold border border-[var(--border)]"
+              >0</span
+            >
+          </div>
+          <div
+            id="col-inprogress"
+            class="flex-1 flex flex-col gap-3 overflow-y-auto max-h-[65vh] pr-1"
+          >
+            <!-- Tarefas injetadas via JS -->
+          </div>
+          <button
+            onclick="openModalWithStatus('inprogress')"
+            class="mt-4 border border-dashed border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:border-[var(--accent)] py-2 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1"
+          >
+            <i class="fa-solid fa-plus"></i> Adicionar cartão
+          </button>
+        </div>
+
+        <!-- Coluna: Revisão -->
+        <div
+          class="kanban-column rounded-2xl p-4 flex flex-col min-h-[550px]"
+          ondragover="allowDrop(event)"
+          ondragleave="removeDropStyle(event)"
+          ondrop="dropTask(event, 'review')"
+        >
+          <div
+            class="flex justify-between items-center mb-4 pb-2 border-b border-[var(--border)]"
+          >
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-purple-500"></span>
+              <h2 class="font-bold text-sm uppercase tracking-wider">
+                Revisão
+              </h2>
+            </div>
+            <span
+              id="count-review"
+              class="bg-[var(--bg-card)] text-[var(--text-muted)] text-xs px-2 py-0.5 rounded-full font-semibold border border-[var(--border)]"
+              >0</span
+            >
+          </div>
+          <div
+            id="col-review"
+            class="flex-1 flex flex-col gap-3 overflow-y-auto max-h-[65vh] pr-1"
+          >
+            <!-- Tarefas injetadas via JS -->
+          </div>
+          <button
+            onclick="openModalWithStatus('review')"
+            class="mt-4 border border-dashed border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:border-[var(--accent)] py-2 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1"
+          >
+            <i class="fa-solid fa-plus"></i> Adicionar cartão
+          </button>
+        </div>
+
+        <!-- Coluna: Concluído -->
+        <div
+          class="kanban-column rounded-2xl p-4 flex flex-col min-h-[550px]"
+          ondragover="allowDrop(event)"
+          ondragleave="removeDropStyle(event)"
+          ondrop="dropTask(event, 'done')"
+        >
+          <div
+            class="flex justify-between items-center mb-4 pb-2 border-b border-[var(--border)]"
+          >
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+              <h2 class="font-bold text-sm uppercase tracking-wider">
+                Concluído
+              </h2>
+            </div>
+            <span
+              id="count-done"
+              class="bg-[var(--bg-card)] text-[var(--text-muted)] text-xs px-2 py-0.5 rounded-full font-semibold border border-[var(--border)]"
+              >0</span
+            >
+          </div>
+          <div
+            id="col-done"
+            class="flex-1 flex flex-col gap-3 overflow-y-auto max-h-[65vh] pr-1"
+          >
+            <!-- Tarefas injetadas via JS -->
+          </div>
+          <button
+            onclick="openModalWithStatus('done')"
+            class="mt-4 border border-dashed border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:border-[var(--accent)] py-2 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1"
+          >
+            <i class="fa-solid fa-plus"></i> Adicionar cartão
+          </button>
+        </div>
+      </div>
+
+      <!-- Seção de Estatísticas e Gráficos (Oculta por padrão) -->
+      <div id="statsView" class="hidden flex-col gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div
+            class="kanban-card p-5 rounded-2xl flex items-center justify-between"
+          >
+            <div>
+              <p class="text-xs text-[var(--text-muted)] font-medium">
+                Total de Tarefas
+              </p>
+              <h3 id="statTotal" class="text-2xl font-bold mt-1">0</h3>
+            </div>
+            <div
+              class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center"
+            >
+              <i class="fa-solid fa-list-check"></i>
+            </div>
+          </div>
+          <div
+            class="kanban-card p-5 rounded-2xl flex items-center justify-between"
+          >
+            <div>
+              <p class="text-xs text-[var(--text-muted)] font-medium">
+                Concluídas
+              </p>
+              <h3 id="statDone" class="text-2xl font-bold mt-1">0</h3>
+            </div>
+            <div
+              class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center"
+            >
+              <i class="fa-solid fa-check"></i>
+            </div>
+          </div>
+          <div
+            class="kanban-card p-5 rounded-2xl flex items-center justify-between"
+          >
+            <div>
+              <p class="text-xs text-[var(--text-muted)] font-medium">
+                Taxa de Conclusão
+              </p>
+              <h3 id="statRate" class="text-2xl font-bold mt-1">0%</h3>
+            </div>
+            <div
+              class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center"
+            >
+              <i class="fa-solid fa-chart-line"></i>
+            </div>
+          </div>
+          <div
+            class="kanban-card p-5 rounded-2xl flex items-center justify-between"
+          >
+            <div>
+              <p class="text-xs text-[var(--text-muted)] font-medium">
+                Urgentes Pendentes
+              </p>
+              <h3 id="statUrgent" class="text-2xl font-bold mt-1">0</h3>
+            </div>
+            <div
+              class="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center"
+            >
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Gráfico de Pizza: Distribuição por Status -->
+          <div class="kanban-card p-6 rounded-2xl flex flex-col">
+            <h3 class="font-bold text-base mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-chart-pie text-[var(--accent)]"></i>
+              Distribuição por Status
+            </h3>
+            <div
+              class="relative flex-1 flex items-center justify-center min-h-[280px]"
+            >
+              <canvas id="pieChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico de Barra: Tarefas por Categoria ou Prioridade -->
+          <div class="kanban-card p-6 rounded-2xl flex flex-col">
+            <h3 class="font-bold text-base mb-4 flex items-center gap-2">
+              <i class="fa-solid fa-chart-column text-[var(--accent)]"></i>
+              Tarefas por Prioridade
+            </h3>
+            <div
+              class="relative flex-1 flex items-center justify-center min-h-[280px]"
+            >
+              <canvas id="barChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div
+      id="taskModal"
+      class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden"
+    >
+      <div
+        class="kanban-card w-full max-w-lg rounded-2xl p-6 shadow-2xl border border-[var(--border)] animate-in fade-in zoom-in duration-200"
+      >
+        <div
+          class="flex justify-between items-center mb-5 pb-3 border-b border-[var(--border)]"
+        >
+          <h3 id="modalTitle" class="font-bold text-lg">Nova Tarefa</h3>
+          <button
+            onclick="closeModal()"
+            class="text-[var(--text-muted)] hover:text-[var(--text-main)] w-8 h-8 rounded-lg flex items-center justify-center transition hover:bg-[var(--border)]"
+          >
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+
+        <form
+          id="taskForm"
+          onsubmit="saveTask(event)"
+          class="flex flex-col gap-4"
+        >
+          <input type="hidden" id="taskId" />
+
+          <div>
+            <label
+              class="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1.5"
+              >Título da Tarefa *</label
+            >
+            <input
+              type="text"
+              id="taskTitle"
+              required
+              class="w-full bg-[var(--bg-main)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-main)] focus:outline-none focus:border-[var(--accent)] transition"
+              placeholder="Ex: Desenvolver tela de login"
+            />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label
+                class="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1.5"
+                >Status</label
+              >
+              <select
+                id="taskStatus"
+                class="w-full bg-[var(--bg-main)] border border-[var(--border)] rounded-xl px-3 py-2.5 text-sm text-[var(--text-main)] focus:outline-none focus:border-[var(--accent)] transition"
+              >
+                <option value="todo">A Fazer</option>
+                <option value="inprogress">Em Andamento</option>
+                <option value="review">Revisão</option>
+                <option value="done">Concluído</option>
+              </select>
+            </div>
+            <div>
+              <label
+                class="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1.5"
+                >Prioridade</label
+              >
+              <select
+                id="taskPriority"
+                class="w-full bg-[var(--bg-main)] border border-[var(--border)] rounded-xl px-3 py-2.5 text-sm text-[var(--text-main)] focus:outline-none focus:border-[var(--accent)] transition"
+              >
+                <option value="baixa">Baixa</option>
+                <option value="media" selected>Média</option>
+                <option value="alta">Alta</option>
+                <option value="urgente">Urgente</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label
+                class="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1.5"
+                >Categoria</label
+              >
+              <input
+                type="text"
+                id="taskCategory"
+                class="w-full bg-[var(--bg-main)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-main)] focus:outline-none focus:border-[var(--accent)] transition"
+                placeholder="Ex: Design, Frontend, QA"
+              />
+            </div>
+            <div>
+              <label
+                class="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1.5"
+                >Data de Vencimento</label
+              >
+              <input
+                type="date"
+                id="taskDueDate"
+                class="w-full bg-[var(--bg-main)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-main)] focus:outline-none focus:border-[var(--accent)] transition"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              class="block text-xs font-semibold text-[var(--text-muted)] uppercase mb-1.5"
+              >Descrição</label
+            >
+            <textarea
+              id="taskDesc"
+              rows="3"
+              class="w-full bg-[var(--bg-main)] border border-[var(--border)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-main)] focus:outline-none focus:border-[var(--accent)] transition resize-none"
+              placeholder="Detalhes adicionais sobre a tarefa..."
+            ></textarea>
+          </div>
+
+          <div
+            class="flex justify-end gap-3 mt-4 pt-3 border-t border-[var(--border)]"
+          >
+            <button
+              type="button"
+              onclick="closeModal()"
+              class="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--bg-main)] border border-[var(--border)] hover:bg-[var(--border)] transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="px-5 py-2 rounded-xl text-sm font-semibold bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white shadow-md transition"
+            >
+              Salvar Tarefa
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      // Estrutura de dados inicial ou carregada do localStorage
+      let tasks = JSON.parse(localStorage.getItem("kanban_tasks")) || [
+        {
+          id: "1",
+          title: "Configurar Arquitetura Base",
+          description:
+            "Estruturar o projeto com HTML, Tailwind e suporte responsivo.",
+          status: "done",
+          priority: "alta",
+          category: "Dev",
+          dueDate: "2026-10-05",
+        },
+        {
+          id: "2",
+          title: "Implementar Sistema Drag & Drop",
+          description:
+            "Garantir movimentação por mouse e suporte touch para mobile.",
+          status: "inprogress",
+          priority: "urgente",
+          category: "Frontend",
+          dueDate: "2026-10-08",
+        },
+        {
+          id: "3",
+          title: "Criar Gráficos Interativos",
+          description: "Adicionar gráficos de pizza e barra com Chart.js.",
+          status: "review",
+          priority: "media",
+          category: "Analytics",
+          dueDate: "2026-10-10",
+        },
+        {
+          id: "4",
+          title: "Testar Temas Dinâmicos",
+          description:
+            "Validar os 5 temas customizados salvos em localStorage.",
+          status: "todo",
+          priority: "baixa",
+          category: "QA",
+          dueDate: "2026-10-15",
+        },
+      ];
+
+      let currentView = "kanban"; // 'kanban' ou 'stats'
+      let pieChartInstance = null;
+      let barChartInstance = null;
+      let draggedTaskId = null;
+
+      // Inicialização
+      document.addEventListener("DOMContentLoaded", () => {
+        const savedTheme = localStorage.getItem("kanban_theme") || "dark";
+        setTheme(savedTheme, false);
+        renderKanban();
+      });
+
+      // Gerenciamento de Temas
+      function setTheme(themeName, save = true) {
+        document.documentElement.setAttribute("data-theme", themeName);
+        if (save) {
+          localStorage.setItem("kanban_theme", themeName);
+        }
+      }
+
+      // Alternar Visão (Kanban <-> Estatísticas)
+      function toggleView() {
+        const kanbanView = document.getElementById("kanbanView");
+        const statsView = document.getElementById("statsView");
+        const viewToggleBtn = document.getElementById("viewToggleBtn");
+        const viewToggleText = document.getElementById("viewToggleText");
+
+        if (currentView === "kanban") {
+          currentView = "stats";
+          kanbanView.classList.add("hidden");
+          statsView.classList.remove("hidden");
+          statsView.classList.add("flex");
+          viewToggleText.textContent = "Ver Kanban";
+          viewToggleBtn.querySelector("i").className = "fa-solid fa-kanban";
+          renderCharts();
+        } else {
+          currentView = "kanban";
+          statsView.classList.add("hidden");
+          statsView.classList.remove("flex");
+          kanbanView.classList.remove("hidden");
+          viewToggleText.textContent = "Ver Estatísticas";
+          viewToggleBtn.querySelector("i").className = "fa-solid fa-chart-pie";
+          renderKanban();
+        }
+      }
+
+      // Renderizar Kanban Board
+      function renderKanban() {
+        const columns = ["todo", "inprogress", "review", "done"];
+        const statuses = {
+          todo: "A Fazer",
+          inprogress: "Em Andamento",
+          review: "Revisão",
+          done: "Concluído",
+        };
+        const nextColumnMap = {
+          todo: "inprogress",
+          inprogress: "review",
+          review: "done",
+          done: null,
+        };
+        const prevColumnMap = {
+          todo: null,
+          inprogress: "todo",
+          review: "inprogress",
+          done: "review",
+        };
+
+        columns.forEach((col) => {
+          const container = document.getElementById(`col-${col}`);
+          const countBadge = document.getElementById(`count-${col}`);
+          const colTasks = tasks.filter((t) => t.status === col);
+
+          countBadge.textContent = colTasks.length;
+          container.innerHTML = "";
+
+          if (colTasks.length === 0) {
+            container.innerHTML = `<div class="text-center py-8 text-xs text-[var(--text-muted)] italic border border-dashed border-[var(--border)] rounded-xl">Nenhuma tarefa</div>`;
+            return;
+          }
+
+          colTasks.forEach((task) => {
+            const priorityColors = {
+              baixa: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+              media: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+              alta: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+              urgente: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+            };
+
+            const card = document.createElement("div");
+            card.className = `kanban-card p-4 rounded-xl shadow-sm flex flex-col gap-3 cursor-grab active:cursor-grabbing transition transform hover:-translate-y-0.5`;
+            card.draggable = true;
+            card.setAttribute("data-id", task.id);
+
+            // Eventos de Drag and Drop (Mouse)
+            card.addEventListener("dragstart", (e) => {
+              draggedTaskId = task.id;
+              e.dataTransfer.setData("text/plain", task.id);
+              setTimeout(() => card.classList.add("dragging"), 0);
+            });
+            card.addEventListener("dragend", () => {
+              card.classList.remove("dragging");
+              draggedTaskId = null;
+            });
+
+            // Toque Mobile (Touch Support customizado)
+            let touchStartY = 0;
+            card.addEventListener(
+              "touchstart",
+              (e) => {
+                draggedTaskId = task.id;
+                touchStartY = e.touches[0].clientY;
+              },
+              { passive: true },
+            );
+
+            card.addEventListener(
+              "touchmove",
+              (e) => {
+                // Permite scroll natural se o movimento for vertical leve, mas prepara para drop
+              },
+              { passive: true },
+            );
+
+            card.addEventListener("touchend", (e) => {
+              // Encontra elemento abaixo do toque para soltar
+              const touch = e.changedTouches[0];
+              const elementBelow = document.elementFromPoint(
+                touch.clientX,
+                touch.clientY,
+              );
+              const dropZone = elementBelow
+                ? elementBelow.closest(".kanban-column")
+                : null;
+              if (dropZone) {
+                const newStatus = dropZone.id.replace("col-", "");
+                if (
+                  newStatus &&
+                  ["todo", "inprogress", "review", "done"].includes(newStatus)
+                ) {
+                  moveTaskStatus(task.id, newStatus);
+                }
+              }
+              draggedTaskId = null;
+            });
+
+            // HTML interno do cartão
+            const prevCol = prevColumnMap[col];
+            const nextCol = nextColumnMap[col];
+
+            card.innerHTML = `
+                        <div class="flex justify-between items-start gap-2">
+                            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full border ${priorityColors[task.priority] || priorityColors.media}">
+                                ${task.priority.toUpperCase()}
+                            </span>
+                            <div class="flex items-center gap-1">
+                                <button onclick="editTask('${task.id}')" class="text-[var(--text-muted)] hover:text-[var(--text-main)] w-7 h-7 rounded-lg flex items-center justify-center hover:bg-[var(--border)] transition" title="Editar">
+                                    <i class="fa-solid fa-pen text-xs"></i>
+                                </button>
+                                <button onclick="deleteTask('${task.id}')" class="text-rose-400 hover:text-rose-500 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-rose-500/10 transition" title="Excluir">
+                                    <i class="fa-solid fa-trash text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="font-bold text-sm tracking-tight mb-1">${escapeHtml(task.title)}</h4>
+                            ${task.description ? `<p class="text-xs text-[var(--text-muted)] line-clamp-2">${escapeHtml(task.description)}</p>` : ""}
+                        </div>
+
+                        <div class="flex items-center justify-between pt-2 border-t border-[var(--border)] text-xs text-[var(--text-muted)]">
+                            <span class="bg-[var(--bg-main)] px-2 py-0.5 rounded-md border border-[var(--border)] font-medium">${escapeHtml(task.category || "Geral")}</span>
+                            ${task.dueDate ? `<span><i class="fa-regular fa-calendar mr-1"></i>${formatDate(task.dueDate)}</span>` : ""}
+                        </div>
+
+                        <!-- Botões direcionais (Setas para mover facilmente via clique ou toque mobile) -->
+                        <div class="flex items-center justify-between pt-1">
+                            <button onclick="moveTaskDirection('${task.id}', 'prev')" ${!prevCol ? 'disabled class="opacity-30 cursor-not-allowed text-xs px-2 py-1 rounded bg-[var(--bg-main)] border border-[var(--border)]"' : 'class="text-xs px-2.5 py-1 rounded bg-[var(--bg-main)] border border-[var(--border)] hover:bg-[var(--accent)] hover:text-white transition"'}>
+                                <i class="fa-solid fa-chevron-left mr-1"></i> Voltar
+                            </button>
+                            <button onclick="moveTaskDirection('${task.id}', 'next')" ${!nextCol ? 'disabled class="opacity-30 cursor-not-allowed text-xs px-2 py-1 rounded bg-[var(--bg-main)] border border-[var(--border)]"' : 'class="text-xs px-2.5 py-1 rounded bg-[var(--bg-main)] border border-[var(--border)] hover:bg-[var(--accent)] hover:text-white transition"'}>
+                                Avançar <i class="fa-solid fa-chevron-right ml-1"></i>
+                            </button>
+                        </div>
+                    `;
+
+            container.appendChild(card);
+          });
+        });
+      }
+
+      // Funções de Drag & Drop nas Colunas
+      function allowDrop(e) {
+        e.preventDefault();
+      }
+
+      function removeDropStyle(e) {
+        e.preventDefault();
+      }
+
+      function dropTask(e, newStatus) {
+        e.preventDefault();
+        const taskId = e.dataTransfer.getData("text/plain") || draggedTaskId;
+        if (taskId) {
+          moveTaskStatus(taskId, newStatus);
+        }
+      }
+
+      // Mover status da tarefa
+      function moveTaskStatus(taskId, newStatus) {
+        const task = tasks.find((t) => t.id === taskId);
+        if (task && task.status !== newStatus) {
+          task.status = newStatus;
+          saveAndRefresh();
+        }
+      }
+
+      // Mover com botões direcionais
+      function moveTaskDirection(taskId, direction) {
+        const order = ["todo", "inprogress", "review", "done"];
+        const task = tasks.find((t) => t.id === taskId);
+        if (!task) return;
+
+        const currentIndex = order.indexOf(task.status);
+        if (direction === "next" && currentIndex < order.length - 1) {
+          task.status = order[currentIndex + 1];
+        } else if (direction === "prev" && currentIndex > 0) {
+          task.status = order[currentIndex - 1];
+        }
+        saveAndRefresh();
+      }
+
+      // CRUD Modais e Tarefas
+      function openModal() {
+        document.getElementById("modalTitle").textContent = "Nova Tarefa";
+        document.getElementById("taskForm").reset();
+        document.getElementById("taskId").value = "";
+        document.getElementById("taskStatus").value = "todo";
+        document.getElementById("taskModal").classList.remove("hidden");
+      }
+
+      function openModalWithStatus(status) {
+        openModal();
+        document.getElementById("taskStatus").value = status;
+      }
+
+      function editTask(id) {
+        const task = tasks.find((t) => t.id === id);
+        if (!task) return;
+
+        document.getElementById("modalTitle").textContent = "Editar Tarefa";
+        document.getElementById("taskId").value = task.id;
+        document.getElementById("taskTitle").value = task.title;
+        document.getElementById("taskStatus").value = task.status;
+        document.getElementById("taskPriority").value = task.priority;
+        document.getElementById("taskCategory").value = task.category || "";
+        document.getElementById("taskDueDate").value = task.dueDate || "";
+        document.getElementById("taskDesc").value = task.description || "";
+
+        document.getElementById("taskModal").classList.remove("hidden");
+      }
+
+      function closeModal() {
+        document.getElementById("taskModal").classList.add("hidden");
+      }
+
+      function saveTask(e) {
+        e.preventDefault();
+        const id = document.getElementById("taskId").value;
+        const title = document.getElementById("taskTitle").value.trim();
+        const status = document.getElementById("taskStatus").value;
+        const priority = document.getElementById("taskPriority").value;
+        const category =
+          document.getElementById("taskCategory").value.trim() || "Geral";
+        const dueDate = document.getElementById("taskDueDate").value;
+        const description = document.getElementById("taskDesc").value.trim();
+
+        if (!title) return;
+
+        if (id) {
+          // Editar
+          const task = tasks.find((t) => t.id === id);
+          if (task) {
+            task.title = title;
+            task.status = status;
+            task.priority = priority;
+            task.category = category;
+            task.dueDate = dueDate;
+            task.description = description;
+          }
+        } else {
+          // Criar
+          const newTask = {
+            id: Date.now().toString(),
+            title,
+            status,
+            priority,
+            category,
+            dueDate,
+            description,
+          };
+          tasks.push(newTask);
+        }
+
+        closeModal();
+        saveAndRefresh();
+      }
+
+      function deleteTask(id) {
+        if (confirm("Deseja realmente excluir esta tarefa?")) {
+          tasks = tasks.filter((t) => t.id !== id);
+          saveAndRefresh();
+        }
+      }
+
+      function saveAndRefresh() {
+        localStorage.setItem("kanban_tasks", JSON.stringify(tasks));
+        if (currentView === "kanban") {
+          renderKanban();
+        } else {
+          renderCharts();
+        }
+      }
+
+      // Renderizar Gráficos com Chart.js
+      function renderCharts() {
+        // Atualizar cards de estatísticas
+        const total = tasks.length;
+        const done = tasks.filter((t) => t.status === "done").length;
+        const rate = total > 0 ? Math.round((done / total) * 100) : 0;
+        const urgent = tasks.filter(
+          (t) => t.priority === "urgente" && t.status !== "done",
+        ).length;
+
+        document.getElementById("statTotal").textContent = total;
+        document.getElementById("statDone").textContent = done;
+        document.getElementById("statRate").textContent = `${rate}%`;
+        document.getElementById("statUrgent").textContent = urgent;
+
+        // Cores baseadas no tema atual
+        const isDark =
+          document.documentElement.getAttribute("data-theme") !== "light" &&
+          document.documentElement.getAttribute("data-theme") !== "sunset";
+        const textColor = isDark ? "#f8fafc" : "#0f172a";
+        const gridColor = isDark ? "#334155" : "#e2e8f0";
+
+        // Destruir gráficos anteriores se existirem
+        if (pieChartInstance) pieChartInstance.destroy();
+        if (barChartInstance) barChartInstance.destroy();
+
+        // Gráfico de Pizza (Status)
+        const statusCounts = {
+          todo: tasks.filter((t) => t.status === "todo").length,
+          inprogress: tasks.filter((t) => t.status === "inprogress").length,
+          review: tasks.filter((t) => t.status === "review").length,
+          done: tasks.filter((t) => t.status === "done").length,
+        };
+
+        const ctxPie = document.getElementById("pieChart").getContext("2d");
+        pieChartInstance = new Chart(ctxPie, {
+          type: "doughnut",
+          data: {
+            labels: ["A Fazer", "Em Andamento", "Revisão", "Concluído"],
+            datasets: [
+              {
+                data: [
+                  statusCounts.todo,
+                  statusCounts.inprogress,
+                  statusCounts.review,
+                  statusCounts.done,
+                ],
+                backgroundColor: ["#f59e0b", "#3b82f6", "#a855f7", "#10b981"],
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: {
+                  color: textColor,
+                  font: { family: "Inter", size: 12 },
+                },
+              },
+            },
+          },
+        });
+
+        // Gráfico de Barras (Prioridade)
+        const priorityCounts = {
+          baixa: tasks.filter((t) => t.priority === "baixa").length,
+          media: tasks.filter((t) => t.priority === "media").length,
+          alta: tasks.filter((t) => t.priority === "alta").length,
+          urgente: tasks.filter((t) => t.priority === "urgente").length,
+        };
+
+        const ctxBar = document.getElementById("barChart").getContext("2d");
+        barChartInstance = new Chart(ctxBar, {
+          type: "bar",
+          data: {
+            labels: ["Baixa", "Média", "Alta", "Urgente"],
+            datasets: [
+              {
+                label: "Tarefas por Prioridade",
+                data: [
+                  priorityCounts.baixa,
+                  priorityCounts.media,
+                  priorityCounts.alta,
+                  priorityCounts.urgente,
+                ],
+                backgroundColor: ["#64748b", "#3b82f6", "#f59e0b", "#f43f5e"],
+                borderRadius: 8,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: {
+                  color: textColor,
+                  font: { family: "Inter", size: 12 },
+                },
+              },
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1,
+                  color: textColor,
+                  font: { family: "Inter", size: 12 },
+                },
+                grid: { color: gridColor },
+              },
+            },
+            plugins: {
+              legend: { display: false },
+            },
+          },
+        });
+      }
+
+      // Utilitários
+      function escapeHtml(str) {
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function formatDate(dateStr) {
+        if (!dateStr) return "";
+        const parts = dateStr.split("-");
+        if (parts.length !== 3) return dateStr;
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+    </script>
+  </body>
+</html>
